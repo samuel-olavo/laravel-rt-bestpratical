@@ -3,6 +3,7 @@
 namespace SamuelOlavo\LaravelRTBestpratical;
 
 use GuzzleHttp\Client;
+use GuzzleHttp\Cookie\CookieJar;
 use GuzzleHttp\Exception\RequestException;
 
 class RTService
@@ -21,10 +22,8 @@ class RTService
         $this->username = $config['user'];  // RT Username
         $this->password = $config['password'];  // RT Password
 
-        // Check if SSL certificates are provided (certificate, private key, and chain)
-        $this->cookieJar = tempnam(sys_get_temp_dir(), 'rt_session'); // Store session cookies
-
         // Initialize Guzzle client with or without certificates
+        $this->cookieJar = new CookieJar();
         $this->initializeClient($config);
 
         // Authenticate and retrieve session token (if using certificates or normal auth)
