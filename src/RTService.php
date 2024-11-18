@@ -8,31 +8,76 @@ use GuzzleHttp\Exception\RequestException;
 class RTService
 {
     protected $client;
+    protected $sessionToken;
+    protected $cookieJar;
     protected $baseUrl;
-    protected $token;
+    protected $username;
+    protected $password;
 
     public function __construct()
     {
-        $config = config('rt');
-        $this->baseUrl = $config['base_url'];
-        $this->token = $config['api_token'];  // Your RT API token (if using API key)
+        // Configuration for URL and credentials
+        $this->baseUrl = config('rt.base_url'); // Base URL of your RT
+        $this->username = config('rt.user'); // Login username
+        $this->password = config('rt.password'); // Login password
 
-        // Determine if a certificate is needed
-        if (isset($config['certificate']) && $config['certificate']) {
-            $this->client = new Client([
-                'base_uri' => $this->baseUrl,
-                'verify' => $config['certificate_path'], // Path to the certificate file
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $this->token,
+        // Temporary file to save the session cookie
+        $this->cookieJar = tempnam(sys_get_temp_dir(), 'rt_session');
+
+        // Initialize Guzzle client
+        $this->client = new Client([
+            'base_uri' => $this->baseUrl,
+            'cookies' => $this->cookieJar, // Use the cookieJar to store the session cookie
+        ]);
+    }
+
+    // Method to authenticate and retrieve the session cookie
+    public function authenticate()
+    {
+        try {
+            $response = $this->client->post('/index.html', [
+                'form_params' => [
+                    'user' => $this->username,
+                    'pass' => $this->password,
                 ]
             ]);
-        } else {
-            $this->client = new Client([
-                'base_uri' => $this->baseUrl,
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $this->token,
-                ]
-            ]);
+
+            // Check if the authentication was successful
+            if ($response->getStatusCode() == 200) {
+                $this->sessionToken = $this->extractSessionToken($response);
+                return true; // Authentication successful
+            }
+
+            return false; // Authentication failed
+
+        } catch (RequestException $e) {
+            throw new \Exception("Error during authentication: " . $e->getMessage());
+        }
+    }
+
+    // Method to extract the session token from the response
+    protected function extractSessionToken($response)
+    {
+        // Extract the session cookie from the response headers
+        return $response->getHeader('Set-Cookie')[0];
+    }
+
+    // Method to make a request using the session cookie
+    public function requestWithSession($url, $data = [], $method = 'GET')
+    {
+        try {
+            $options = [
+                'cookies' => $this->cookieJar, // Pass the session cookie
+            ];
+
+            if ($method == 'POST') {
+                $options['form_params'] = $data;
+            }
+
+            $response = $this->client->request($method, $this->baseUrl . $url, $options);
+            return $response->getBody()->getContents();
+        } catch (RequestException $e) {
+            throw new \Exception("Error during request: " . $e->getMessage());
         }
     }
 
@@ -94,7 +139,7 @@ class RTService
         }
     }
 
-    // Update ticket (e.g., change status or priority)
+    // Update a ticket (e.g., change status or priority)
     public function updateTicket($ticketId, $fields)
     {
         try {
