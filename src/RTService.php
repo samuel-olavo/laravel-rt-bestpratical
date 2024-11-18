@@ -8,76 +8,72 @@ use GuzzleHttp\Exception\RequestException;
 class RTService
 {
     protected $client;
-    protected $sessionToken;
-    protected $cookieJar;
     protected $baseUrl;
     protected $username;
     protected $password;
+    protected $cookieJar;
 
     public function __construct()
     {
-        // Configuration for URL and credentials
-        $this->baseUrl = config('rt.base_url'); // Base URL of your RT
-        $this->username = config('rt.user'); // Login username
-        $this->password = config('rt.password'); // Login password
+        // Load the configuration from the .env file
+        $config = config('rt');
+        $this->baseUrl = $config['base_url'];
+        $this->username = $config['user'];  // RT Username
+        $this->password = $config['password'];  // RT Password
 
-        // Temporary file to save the session cookie
-        $this->cookieJar = tempnam(sys_get_temp_dir(), 'rt_session');
+        // Check if SSL certificates are provided (certificate, private key, and chain)
+        $this->cookieJar = tempnam(sys_get_temp_dir(), 'rt_session'); // Store session cookies
 
-        // Initialize Guzzle client
-        $this->client = new Client([
-            'base_uri' => $this->baseUrl,
-            'cookies' => $this->cookieJar, // Use the cookieJar to store the session cookie
-        ]);
+        // Initialize Guzzle client with or without certificates
+        $this->initializeClient($config);
+
+        // Authenticate and retrieve session token (if using certificates or normal auth)
+        $this->authenticate();
+    }
+
+    // Method to initialize the Guzzle client based on certificate configuration
+    private function initializeClient($config)
+    {
+        if (isset($config['certificate']) && $config['certificate']) {
+            // Client with SSL certificates for authentication
+            $this->client = new Client([
+                'base_uri' => $this->baseUrl,
+                'verify' => $config['certificate_chain_path'] ?? $config['certificate_path'], // Use certificate chain or just the certificate
+                'cert' => [
+                    $config['certificate_path'],  // Cert file path
+                    $config['private_key_path'],  // Private Key file path
+                ],
+                'cookies' => $this->cookieJar,  // Store session cookies
+            ]);
+        } else {
+            // Client without SSL certificate (standard username/password authentication)
+            $this->client = new Client([
+                'base_uri' => $this->baseUrl,
+                'cookies' => $this->cookieJar,  // Store session cookies
+            ]);
+        }
     }
 
     // Method to authenticate and retrieve the session cookie
-    public function authenticate()
+    private function authenticate()
     {
         try {
+            // Perform POST request to authenticate using the login form
             $response = $this->client->post('/index.html', [
                 'form_params' => [
                     'user' => $this->username,
                     'pass' => $this->password,
-                ]
+                ],
             ]);
 
-            // Check if the authentication was successful
+            // Check if authentication is successful
             if ($response->getStatusCode() == 200) {
-                $this->sessionToken = $this->extractSessionToken($response);
                 return true; // Authentication successful
             }
 
             return false; // Authentication failed
-
         } catch (RequestException $e) {
             throw new \Exception("Error during authentication: " . $e->getMessage());
-        }
-    }
-
-    // Method to extract the session token from the response
-    protected function extractSessionToken($response)
-    {
-        // Extract the session cookie from the response headers
-        return $response->getHeader('Set-Cookie')[0];
-    }
-
-    // Method to make a request using the session cookie
-    public function requestWithSession($url, $data = [], $method = 'GET')
-    {
-        try {
-            $options = [
-                'cookies' => $this->cookieJar, // Pass the session cookie
-            ];
-
-            if ($method == 'POST') {
-                $options['form_params'] = $data;
-            }
-
-            $response = $this->client->request($method, $this->baseUrl . $url, $options);
-            return $response->getBody()->getContents();
-        } catch (RequestException $e) {
-            throw new \Exception("Error during request: " . $e->getMessage());
         }
     }
 
@@ -139,7 +135,7 @@ class RTService
         }
     }
 
-    // Update a ticket (e.g., change status or priority)
+    // Update ticket (e.g., change status or priority)
     public function updateTicket($ticketId, $fields)
     {
         try {

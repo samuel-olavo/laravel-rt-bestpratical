@@ -40,3 +40,6 @@ phpunit.xml.dist
 # Ignore the 'composer.lock' if you're not using it in this repo (optional)
 composer.lock
 
+#path certificates
+/storage/app/certificates/
+
