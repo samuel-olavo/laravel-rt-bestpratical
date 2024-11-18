@@ -1,0 +1,42 @@
+# Laravel specific
+/vendor
+/node_modules
+/.env
+/.idea
+/.vscode
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Log files
+*.log
+
+# IDE files
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Certificate files (important for security)
+*.pem
+
+# Composer PHAR
+composer.phar
+
+# Laravel cache
+/storage/*
+!storage/app
+!storage/app/public
+!storage/framework
+!storage/logs
+
+# Laravel test files (if you're using PHPUnit or similar)
+phpunit.xml
+phpunit.xml.dist
+
+# Laravel config cache
+/bootstrap/cache/*
+
+# Ignore the 'composer.lock' if you're not using it in this repo (optional)
+composer.lock
+

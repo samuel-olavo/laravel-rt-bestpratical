@@ -1,0 +1,24 @@
+{
+    "name": "samuel-olavo/laravel-rt-bestpratical",
+    "description": "Laravel package to interact with the RT (Request Tracker) API",
+    "type": "library",
+    "require": {
+        "php": "^8.0",
+        "guzzlehttp/guzzle": "^7.0",
+        "illuminate/support": "^8.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "SamuelOlavo\\LaravelRTBestpratical\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "SamuelOlavo\\LaravelRTBestpratical\\RTServiceProvider"
+            ]
+        }
+    },
+    "license": "MIT"
+}
+
