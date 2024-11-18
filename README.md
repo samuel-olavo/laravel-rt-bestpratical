@@ -42,17 +42,17 @@ To get ticket details:
 $ticketDetails = $rtService->getTicket(1); // Get details for ticket ID 1
 
 ```
-##Available Methods
+## Available Methods
 
-createTicket()
-getTicket()
-searchTickets()
-addComment()
-updateTicket()
-assignTicket()
-getTicketHistory()
-resolveTicket()
-deleteTicket()
-listQueues()
-listUsers()
+- `createTicket()`
+- `getTicket()`
+- `searchTickets()`
+- `addComment()`
+- `updateTicket()`
+- `assignTicket()`
+- `getTicketHistory()`
+- `resolveTicket()`
+- `deleteTicket()`
+- `listQueues()`
+- `listUsers()`
 
