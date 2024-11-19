@@ -3,215 +3,157 @@
 namespace SamuelOlavo\LaravelRTBestpratical;
 
 use GuzzleHttp\Client;
-use GuzzleHttp\Cookie\CookieJar;
 use GuzzleHttp\Exception\RequestException;
 
 class RTService
 {
     protected $client;
     protected $baseUrl;
-    protected $username;
-    protected $password;
-    protected $cookieJar;
+    protected $apiToken;
 
+    /**
+     * Constructor to initialize the RTService.
+     * Loads configuration, sets up the HTTP client, and authenticates the user.
+     */
     public function __construct()
     {
-        // Load the configuration from the .env file
         $config = config('rt');
-        $this->baseUrl = $config['base_url'];
-        $this->username = $config['user'];  // RT Username
-        $this->password = $config['password'];  // RT Password
+        $this->baseUrl = rtrim($config['base_url'], '/') . '/';
+        $this->apiToken = $config['api_token'];
 
-        // Initialize Guzzle client with or without certificates
-        $this->cookieJar = new CookieJar();
         $this->initializeClient($config);
-
-        // Authenticate and retrieve session token (if using certificates or normal auth)
-        $this->authenticate();
     }
 
-    // Method to initialize the Guzzle client based on certificate configuration
     private function initializeClient($config)
     {
-        if (isset($config['certificate']) && $config['certificate']) {
-            // Client with SSL certificates for authentication
-            $this->client = new Client([
-                'base_uri' => $this->baseUrl,
-                'verify' => $config['certificate_chain_path'] ?? $config['certificate_path'], // Use certificate chain or just the certificate
-                'cert' => [
-                    $config['certificate_path'],  // Cert file path
-                    $config['private_key_path'],  // Private Key file path
-                ],
-                'cookies' => $this->cookieJar,  // Store session cookies
-            ]);
-        } else {
-            // Client without SSL certificate (standard username/password authentication)
-            $this->client = new Client([
-                'base_uri' => $this->baseUrl,
-                'cookies' => $this->cookieJar,  // Store session cookies
-            ]);
+        $options = [
+            'base_uri' => $this->baseUrl,
+            'headers' => [
+                'Authorization' => 'token ' . $this->apiToken,
+                'Accept' => 'application/json',
+            ],
+        ];
+
+        // Certificado SSL se necessário
+        if (!empty($config['certificate'])) {
+            $options['verify'] = $config['certificate_chain_path'] ?? $config['certificate_path'];
+            $options['cert'] = [
+                $config['certificate_path'],
+                $config['private_key_path'],
+            ];
         }
+
+        $this->client = new Client($options);
     }
 
-    // Method to authenticate and retrieve the session cookie
-    private function authenticate()
-    {
-        try {
-            // Perform POST request to authenticate using the login form
-            $response = $this->client->post('/index.html', [
-                'form_params' => [
-                    'user' => $this->username,
-                    'pass' => $this->password,
-                ],
-            ]);
-
-            // Check if authentication is successful
-            if ($response->getStatusCode() == 200) {
-                return true; // Authentication successful
-            }
-
-            return false; // Authentication failed
-        } catch (RequestException $e) {
-            throw new \Exception("Error during authentication: " . $e->getMessage());
-        }
-    }
-
-    // Create a ticket
-    public function createTicket($subject, $description, $queue = 'General', $priority = 3)
-    {
-        try {
-            $response = $this->client->post('/REST/1.0/ticket', [
-                'json' => [
-                    'Queue' => $queue,
-                    'Subject' => $subject,
-                    'Text' => $description,
-                    'Priority' => $priority,
-                ]
-            ]);
-            return json_decode($response->getBody(), true);
-        } catch (RequestException $e) {
-            return $e->getMessage();
-        }
-    }
-
-    // Get a ticket by ID
+    /**
+     * Get a specific ticket by ID.
+     */
     public function getTicket($ticketId)
     {
         try {
-            $response = $this->client->get("/REST/1.0/ticket/$ticketId");
-            return json_decode($response->getBody(), true);
+            $response = $this->client->get("ticket/$ticketId");
+            return json_decode($response->getBody()->getContents(), true);
         } catch (RequestException $e) {
-            return $e->getMessage();
+            return "Error fetching ticket: " . $e->getMessage();
         }
     }
 
-    // Search for tickets
-    public function searchTickets($query = 'Status="new"')
+    /**
+     * Create a new ticket.
+     */
+    public function createTicket(array $data)
     {
         try {
-            $response = $this->client->get('/REST/1.0/ticket/search', [
-                'query' => ['query' => $query]
+            $response = $this->client->post('ticket', [
+                'json' => $data
             ]);
-            return json_decode($response->getBody(), true);
+            return json_decode($response->getBody()->getContents(), true);
         } catch (RequestException $e) {
-            return $e->getMessage();
+            return "Error creating ticket: " . $e->getMessage();
         }
     }
-
-    // Add a comment to a ticket
-    public function addComment($ticketId, $comment, $isPublic = true)
+    /**
+     * Update a specific ticket by ID.
+     */
+    public function updateTicket($ticketId, array $data)
     {
         try {
-            $response = $this->client->post("/REST/1.0/ticket/$ticketId/comment", [
-                'json' => [
-                    'Text' => $comment,
-                    'IsPublic' => $isPublic ? '1' : '0'
-                ]
+            // Sending a PUT request to update the ticket
+            $response = $this->client->put("ticket/$ticketId", [
+                'json' => $data
             ]);
-            return json_decode($response->getBody(), true);
+
+            // Return the response decoded in JSON format
+            return json_decode($response->getBody()->getContents(), true);
         } catch (RequestException $e) {
-            return $e->getMessage();
+            // Return an error message in case of request failure
+            return "Error updating ticket: " . $e->getMessage();
         }
     }
 
-    // Update ticket (e.g., change status or priority)
-    public function updateTicket($ticketId, $fields)
+    /**
+     * add a response to the ticket
+     */
+    public function addResponseToTicket($ticketId, array $data)
     {
         try {
-            $response = $this->client->put("/REST/1.0/ticket/$ticketId", [
-                'json' => $fields
+            $response = $this->client->post("ticket/$ticketId/correspond", [
+                'json' => $data
             ]);
-            return json_decode($response->getBody(), true);
+
+            return json_decode($response->getBody()->getContents(), true);
         } catch (RequestException $e) {
-            return $e->getMessage();
+            return "Error posting response: " . $e->getMessage();
         }
     }
-
-    // Assign a ticket to a user
-    public function assignTicket($ticketId, $userId)
+    /**
+     * add a comment to the ticket
+     */
+    public function addCommentToTicket($ticketUrl, array $data)
     {
         try {
-            $response = $this->client->post("/REST/1.0/ticket/$ticketId/assign", [
-                'json' => ['Owner' => $userId]
+            $response = $this->client->post("{$ticketUrl}/correspond", [
+                'json' => $data
             ]);
-            return json_decode($response->getBody(), true);
+            return json_decode($response->getBody()->getContents(), true);
         } catch (RequestException $e) {
-            return $e->getMessage();
+            return "Error posting comment: " . $e->getMessage();
+        }
+    }
+    /**
+     * List tickets based on query parameters.
+     */
+    public function listTickets(array $queryParams = [])
+    {
+        try {
+            $response = $this->client->get('tickets', [
+                'query' => $queryParams
+            ]);
+            return json_decode($response->getBody()->getContents(), true);
+        } catch (RequestException $e) {
+            return "Error listing tickets: " . $e->getMessage();
         }
     }
 
-    // Get a ticket's history
-    public function getTicketHistory($ticketId)
+    /**
+     * Add a comment or correspondence to a ticket.
+     *
+     * $type must be 'comment' or 'correspond'.
+     */
+    public function addCommentOrCorrespondence($ticketId, $type, array $data)
     {
-        try {
-            $response = $this->client->get("/REST/1.0/ticket/$ticketId/history");
-            return json_decode($response->getBody(), true);
-        } catch (RequestException $e) {
-            return $e->getMessage();
+        if (!in_array($type, ['comment', 'correspond'])) {
+            return "Invalid type: must be 'comment' or 'correspond'.";
         }
-    }
 
-    // Resolve a ticket
-    public function resolveTicket($ticketId)
-    {
         try {
-            $response = $this->client->post("/REST/1.0/ticket/$ticketId/resolve");
-            return json_decode($response->getBody(), true);
+            $response = $this->client->post("ticket/$ticketId/$type", [
+                'json' => $data
+            ]);
+            return json_decode($response->getBody()->getContents(), true);
         } catch (RequestException $e) {
-            return $e->getMessage();
-        }
-    }
-
-    // Delete a ticket
-    public function deleteTicket($ticketId)
-    {
-        try {
-            $response = $this->client->delete("/REST/1.0/ticket/$ticketId");
-            return json_decode($response->getBody(), true);
-        } catch (RequestException $e) {
-            return $e->getMessage();
-        }
-    }
-
-    // List all queues
-    public function listQueues()
-    {
-        try {
-            $response = $this->client->get('/REST/1.0/queue');
-            return json_decode($response->getBody(), true);
-        } catch (RequestException $e) {
-            return $e->getMessage();
-        }
-    }
-
-    // List all users
-    public function listUsers()
-    {
-        try {
-            $response = $this->client->get('/REST/1.0/user');
-            return json_decode($response->getBody(), true);
-        } catch (RequestException $e) {
-            return $e->getMessage();
+            return "Error adding $type: " . $e->getMessage();
         }
     }
 }
