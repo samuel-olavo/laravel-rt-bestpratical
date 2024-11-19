@@ -63,13 +63,13 @@ if (isset($ticket['id'])) {
 return response()->json(['error' => $ticket], 500);
 ```
 
-##Example 2: Get Ticket Details
+###Example 2: Get Ticket Details
 
 ```php
 $ticketDetails = $rtService->getTicket(1); // Get details for ticket ID 1
 ```
 
-##Example 3: Add a Response to a Ticket
+###Example 3: Add a Response to a Ticket
 
 ```php
 $responseData = [
@@ -85,7 +85,7 @@ if (isset($response['message']) && $response['message'] === 'Correspondence adde
 
 return response()->json(['error' => 'Error adding response to the ticket'], 500);
 ```
-##Example 4: Update a Ticket
+###Example 4: Update a Ticket
 
 ```php
 $assignData = [
@@ -102,7 +102,7 @@ return response()->json(['error' => 'Error assigning the ticket'], 500);
 ```
 
 
-## Available Methods
+### Available Methods
 
 - `createTicket()`
 - `getTicket()`
