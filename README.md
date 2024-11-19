@@ -61,7 +61,7 @@ if (isset($ticket['id'])) {
 }
 
 return response()->json(['error' => $ticket], 500);
-'''
+php'''
 
 ##Example 2: Get Ticket Details
 
