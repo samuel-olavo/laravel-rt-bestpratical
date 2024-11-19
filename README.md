@@ -44,7 +44,7 @@ To create a ticket:
 
 ```php
 use SamuelOlavo\LaravelRTBestpratical\RTService;
-
+'''
 $rtService = app(RTService::class);
 $ticketData = [
     'queue' => 'General',
