@@ -65,13 +65,13 @@ return response()->json(['error' => $ticket], 500);
 
 ##Example 2: Get Ticket Details
 
-'''php
+```php
 $ticketDetails = $rtService->getTicket(1); // Get details for ticket ID 1
-'''
+```
 
 ##Example 3: Add a Response to a Ticket
 
-'''php
+```php
 $responseData = [
     'Content' => 'This is the response to the ticket. How can I assist you?',
     'ContentType' => 'text/plain',
@@ -87,7 +87,7 @@ return response()->json(['error' => 'Error adding response to the ticket'], 500)
 ```
 ##Example 4: Update a Ticket
 
-'''php
+```php
 $assignData = [
     'owner' => 'new-owner',
 ];
