@@ -85,7 +85,6 @@ if (isset($response['message']) && $response['message'] === 'Correspondence adde
 
 return response()->json(['error' => 'Error adding response to the ticket'], 500);
 
-'''
 ##Example 4: Update a Ticket
 
 '''php
