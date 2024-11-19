@@ -61,7 +61,7 @@ if (isset($ticket['id'])) {
 }
 
 return response()->json(['error' => $ticket], 500);
-php'''
+```
 
 ##Example 2: Get Ticket Details
 
@@ -84,7 +84,7 @@ if (isset($response['message']) && $response['message'] === 'Correspondence adde
 }
 
 return response()->json(['error' => 'Error adding response to the ticket'], 500);
-
+```
 ##Example 4: Update a Ticket
 
 '''php
@@ -99,7 +99,7 @@ if (isset($response['id'])) {
 }
 
 return response()->json(['error' => 'Error assigning the ticket'], 500);
-'''
+```
 
 
 ## Available Methods
